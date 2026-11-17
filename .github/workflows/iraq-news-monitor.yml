@@ -1,6 +1,6 @@
 name: Iraq news monitor
 
-on:
+""on"":
   schedule:
     - cron: '7 8-22 * * *'
       timezone: Asia/Baghdad
