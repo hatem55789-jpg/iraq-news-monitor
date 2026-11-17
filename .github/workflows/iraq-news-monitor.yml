@@ -1,1 +1,46 @@
+name: Iraq news monitor
 
+on:
+  schedule:
+    - cron: '7 8-22 * * *'
+      timezone: Asia/Baghdad
+  workflow_dispatch:
+    inputs:
+      test_notification:
+        description: Send a test message to Telegram instead of scanning news
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: iraq-news-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run the monitor
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TEST_NOTIFICATION: ${{ inputs.test_notification || false }}
+        run: python3 monitor.py
+
+      - name: Save de-duplication and daily alert state
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+users.noreply.github.com"
+          git add state.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Update news monitor state"
+            git push
+          fi
